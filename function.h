@@ -29,7 +29,6 @@ struct SOF0data
 };
 struct HuffmanTable
 {
-//	std::map<int,uint8_t> mp[17]; 
 	int cnt[17],mi[17];
 	std::vector<int> mp[17];
 };
@@ -39,7 +38,7 @@ struct RGB
 };
 void check(std::string s)
 {
-	std::cout << "I AM A CHECKER " << s << std::endl;
+//	std::cout << "I AM A CHECKER " << s << std::endl;
 }
 void fillmatrix(int* buffer,Block& tmp);
 void read(uint8_t* buffer,int num,FILE* file);

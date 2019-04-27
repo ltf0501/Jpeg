@@ -10,7 +10,10 @@ static const float cosine[8][8] = {
     {1.00000f, -0.83147f, 0.38268f, 0.19509f, -0.70711f, 0.98079f, -0.92388f, 0.55557f},
     {1.00000f, -0.98079f, 0.92388f, -0.83147f, 0.70711f, -0.55557f, 0.38268f, -0.19509f}
 };
-
+const int N=8;
+float c[8];
+FFT solver;
+cp w[4*N];
 void IDCT(Block& res)
 {
 	static float c[8];
@@ -30,20 +33,18 @@ void IDCT(Block& res)
 	for(int i=0;i<8;i++)for(int j=0;j<8;j++)
 		res.a[i][j]=(int)tmp[i][j];
 }
-
-void IDCT2(Block& res)
+void IDCT_init()
 {
-	const int N=8;
-	const int idx[]={0,7,1,6,2,5,3,4};
 	const float pi=std::acos(-1);
- 	static float c[8];
 	c[0]=(float)sqrt(1.0/N);
 	for(int i=1;i<N;i++)c[i]=(float)sqrt(2.0/N);
-	cp w[4*N];
 	for(int i=0;i<N;i++)w[i]=cp(cos(2*pi/(4*N)*i),sin(2*pi/(4*N)*i));
 	for(int i=0;i<N;i++)w[i]=conj(w[i]);
-	FFT solver;
 	solver.init(N);
+}
+void IDCT2(Block& res)
+{
+	const int idx[]={0,7,1,6,2,5,3,4};
 	float tmp[9][9]={0};
 	for(int i=0;i<N;i++)for(int j=0;j<N;j++)tmp[i][j]=res.a[i][j];
 	for(int i=0;i<N;i++)for(int j=0;j<N;j++)
@@ -67,12 +68,4 @@ void IDCT2(Block& res)
 		for(int i=0;i<N;i++)tmp[i][j]=F[idx[i]].real();
 	}
 	for(int i=0;i<N;i++)for(int j=0;j<N;j++)res.a[i][j]=(int)tmp[i][j];
-	/*
-	for(int i=0;i<N;i++)
-	{
-		for(int j=0;j<N;j++)std::cout << std::setfill(' ') << std::setw(4) << res.a[i][j] << ' ';
-		std::cout << std::endl;
-	}
-	std::cout << std::endl;
-	*/
 	}

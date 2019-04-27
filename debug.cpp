@@ -96,6 +96,7 @@ void readDHT(FILE* file,std::vector<std::vector<HuffmanTable> >& htable)
 	int len=cal_len(buffer);
 	int cur_len=len-2;
 	buffer=(uint8_t*)malloc(17);
+	// read huffman table
 	while(cur_len)
 	{
 		read(buffer,17,file);
@@ -162,19 +163,21 @@ Block make_table(int id,std::vector<std::vector<HuffmanTable> > htable,std::vect
 	{
 		cur=(cur<<1)+(s[now++]-'0');len++;
 //		std::cout << "XD@@ len = " << len << ", cur = " << cur << std::endl;
-		if(tree.mp[len].find(cur)!=tree.mp[len].end())
+		if(cur-tree.mi[len]<tree.cnt[len])
+	//	if(tree.mp[len].find(cur)!=tree.mp[len].end())
 		{
-			int tt=tree.mp[len][cur];
+			int tt=tree.mp[len][cur-tree.mi[len]];
+			//	int tt=tree.mp[len][cur];
 	//		std::cout << "len = " << len << ", cur = " << cur << ", tt = " << tt << std::endl;
 			int T=tt;
 			if(!T)break ;
-			std::string ss;
-			ss+=s[now];
+		//	std::string ss;
+		//	ss+=s[now];
 			int flag=s[now]-'0';T--;
 			buffer[0]=(buffer[0]<<1)+(s[now++]-'0');
 			while(T--)
 			{
-				ss+=s[now];
+		//		ss+=s[now];
 				buffer[0]=(buffer[0]<<1)+(s[now++]-'0');
 			}
 			int x=1;
@@ -186,7 +189,7 @@ Block make_table(int id,std::vector<std::vector<HuffmanTable> > htable,std::vect
 	tree=htable[1][AC_id[id]];
 //	std::cout << "is_AC = 1, AC_id[" << id << "] = " << AC_id[id] << std::endl;  
 	cur=0;len=0;
-	std::string ss;
+//	std::string ss;
 
 	//read AC
 	
@@ -195,16 +198,18 @@ Block make_table(int id,std::vector<std::vector<HuffmanTable> > htable,std::vect
 	//	ss+=s[now];
 		cur=(cur<<1)+(s[now++]-'0');len++;	
 //		std::cout << "XD@@@ len = " << len << ", cur = " << cur << std::endl;
-		if(tree.mp[len].find(cur)!=tree.mp[len].end())
+		if(cur-tree.mi[len]<tree.cnt[len])
+		//if(tree.mp[len].find(cur)!=tree.mp[len].end())
 		{
-			int tt=tree.mp[len][cur];
+			int tt=tree.mp[len][cur-tree.mi[len]];
+		//	int tt=tree.mp[len][cur];
 		//	std::cout << "len = " << len << ", cur = " << cur << ", tt = " << tt << std::endl;
 			if(tt==0)break ;
 			p+=(tt>>4);
 			int nxt=tt & 0xf;
 		//	std::cout << "nxt = " << nxt << std::endl;
 			int T=nxt;
-			if(T)//it might be tt==15*16
+			if(T)
 			{
 			//	ss+=s[now];
 				int flag=s[now]-'0';T--;
@@ -219,11 +224,6 @@ Block make_table(int id,std::vector<std::vector<HuffmanTable> > htable,std::vect
 			p++;
 		//	ss.clear();
 			cur=0,len=0;
-			if(p>64)
-			{
-				std::runtime_error("Bomb");
-				exit(0);
-			}
 			if(p>=64)break ;
 		}
 	}
@@ -232,10 +232,9 @@ Block make_table(int id,std::vector<std::vector<HuffmanTable> > htable,std::vect
 	for(int i=0;i<64;i++)
 	{
 		std::cout << std::setfill(' ') << std::setw(3) << buffer[i] << ((i%8==7) ? '\n' : ' '); 
-	}
-*/	
+	}	
 //	check("XD");
-	
+*/	
 	fillmatrix(buffer,res);
 	return res;
 }
@@ -259,7 +258,6 @@ void readSOS(FILE* file,SOF0data image,std::vector<std::vector<HuffmanTable> > h
 		std::cout << "AC_id[" << (unsigned int)buffer[0] << "] = " << AC_id[buffer[0]] << std::endl;
 	}
 	read(buffer,3,file);
-	std::cout << (unsigned int)buffer[0] << ' ' << (unsigned int)buffer[1] << ' ' << (unsigned int)buffer[2] << std::endl;
 	std::string s;
 	while(1)
 	{
@@ -277,10 +275,8 @@ void readSOS(FILE* file,SOF0data image,std::vector<std::vector<HuffmanTable> > h
 			if(read0xff(file,s))break ;
 		}
 	}
-//	std::cout << s << std::endl;
 	int row=image.row;
 	int column=image.column;
-	//8*image.Vmax-1
 	int b_row=(row+8*image.Vmax-1)/(8*image.Vmax);
 	int b_column=(column+8*image.Hmax-1)/(8*image.Hmax);
 	std::cout << "b_row = " << b_row << " b_column = " << b_column << std::endl;
@@ -292,9 +288,11 @@ void readSOS(FILE* file,SOF0data image,std::vector<std::vector<HuffmanTable> > h
 	// read Mcu 
 	int pre[4]={0};
 	std::vector<std::vector<Mcu> > mcudata(b_row,std::vector<Mcu>(b_column));	
+	IDCT_init();
 	for(int i=0;i<b_row;i++)for(int j=0;j<b_column;j++)
 	{
-	//	std::cout << "i = " << i << " j = " << j << std::endl;
+//		std::cout << "i = " << i << " j = " << j << ": ";
+	//	auto t1=clock();
 		for(int num=0;num<3;num++)
 		{
 			int id=image.id[num];
@@ -336,18 +334,16 @@ void readSOS(FILE* file,SOF0data image,std::vector<std::vector<HuffmanTable> > h
 		*/
 			}
 		}
-		int Y[8*image.Vmax][8*image.Hmax];
-		int Cr[8*image.Vmax][8*image.Hmax];
-		int Cb[8*image.Vmax][8*image.Hmax];
+		//YCbCr to RGB
 		for(int x=0;x<8*image.Vmax;x++)for(int y=0;y<8*image.Hmax;y++)
 		{
-			Y[x][y]=mcudata[i][j].v[image.id[0]][x/(8*rV[0])][y/(8*rH[0])].a[(x/rV[0])%8][(y/rH[0])%8];
-			Cb[x][y]=mcudata[i][j].v[image.id[1]][x/(8*rV[1])][y/(8*rH[1])].a[(x/rV[1])%8][(y/rH[1])%8];
-			Cr[x][y]=mcudata[i][j].v[image.id[2]][x/(8*rV[2])][y/(8*rH[2])].a[(x/rV[2])%8][(y/rH[2])%8];
+			int Y=mcudata[i][j].v[image.id[0]][x/(8*rV[0])][y/(8*rH[0])].a[(x/rV[0])%8][(y/rH[0])%8];
+			int Cb=mcudata[i][j].v[image.id[1]][x/(8*rV[1])][y/(8*rH[1])].a[(x/rV[1])%8][(y/rH[1])%8];
+			int Cr=mcudata[i][j].v[image.id[2]][x/(8*rV[2])][y/(8*rH[2])].a[(x/rV[2])%8][(y/rH[2])%8];
 
-			float R=Y[x][y]+1.402*Cr[x][y]+128;
-			float G=Y[x][y]-0.3441416*Cb[x][y]-0.714136*Cr[x][y]+128;
-			float B=Y[x][y]+1.772*Cb[x][y]+128;
+			float R=Y+1.402*Cr+128;
+			float G=Y-0.3441416*Cb-0.714136*Cr+128;
+			float B=Y+1.772*Cb+128;
 			if(R>=255)R=255;
 			if(R<=0)R=0;
 			if(G>=255)G=255;
@@ -357,7 +353,7 @@ void readSOS(FILE* file,SOF0data image,std::vector<std::vector<HuffmanTable> > h
 			RGB& tmp=graph[8*image.Vmax*i+x][8*image.Hmax*j+y];
 			tmp=(RGB){(unsigned int)R,(unsigned int)G,(unsigned int)B};
 		}
-	/*	
+		/*
 		std::cout << "i = " << i << " j = " << j << std::endl;
 		std :: cout << "Y:" <<std::endl;
 		for(int x=0;x<8*image.Vmax;x++)
@@ -378,10 +374,10 @@ void readSOS(FILE* file,SOF0data image,std::vector<std::vector<HuffmanTable> > h
 		{
 			for(int y=0;y<8*image.Hmax;y++)std::cout << std::setfill(' ') << std::setw(4) << Cr[x][y] << ' ';
 			std::cout << std::endl;
-		}
+		}		
 		std::cout << std::endl;
-	*/	
-	/*	
+	*/
+		/*	
 		std::cout << "i = " << i << " j = " << j << std::endl;
 		std :: cout << "R:" <<std::endl;
 		for(int x=0;x<8*image.Vmax;x++)
@@ -437,6 +433,7 @@ int main(int argc,char *argv[])
 		std::cout << std::hex <<  (unsigned int)buffer[1] << std::endl;
 		std::cout << std::dec;
 		if(APPO_MIN <= marker && marker <=APPO_MAX){garbage(file);continue;}
+		//check the marker
 		switch(marker)
 		{
 			case DQT:
@@ -455,12 +452,7 @@ int main(int argc,char *argv[])
 				break;
 			case SOS:
 				readSOS(file,image,htable,qtable,graph);
-				if(argc==2)
-				{
-					std::cout << "No output filename." << std::endl;
-					return 0;
-				}
-				bmp_write(graph,argv[2]);
+				bmp_write(graph,argv[1]);
 				eoi=1;
 				break;
 		}
@@ -468,3 +460,4 @@ int main(int argc,char *argv[])
 	fclose(file);
 	return 0;
 }
+
