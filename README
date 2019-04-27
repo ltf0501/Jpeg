@@ -1,0 +1,2 @@
+In this program, you can use "make" to compile, and execute as "./main filename". The gcc version is c++11.
+In IDCT.h, I use the approach base on the FFT to improve the efficiency.
